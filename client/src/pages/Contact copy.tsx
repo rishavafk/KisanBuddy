@@ -36,7 +36,7 @@ export function Contact() {
     {
       icon: Mail,
       title: 'Email Us',
-      value: 'contact@dronefarm.com',
+      value: 'contact@KisanBuddy.com',
       description: 'Get in touch with our team',
     },
     {
@@ -272,14 +272,14 @@ export function Contact() {
               <span className="text-white font-bold">D</span>
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-[var(--drone-green)] to-[var(--drone-teal)] bg-clip-text text-transparent">
-              DroneFarm
+              KisanBuddy
             </span>
           </div>
           <p className="text-white/60 mb-6">
             Revolutionizing agriculture through intelligent automation and precision technology.
           </p>
           <div className="flex justify-center space-x-8 text-white/40">
-            <span>&copy; 2024 DroneFarm. All rights reserved.</span>
+            <span>&copy; 2024 KisanBuddy. All rights reserved.</span>
             <span>Privacy Policy</span>
             <span>Terms of Service</span>
           </div>

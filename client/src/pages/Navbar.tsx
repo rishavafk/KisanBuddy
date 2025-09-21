@@ -47,9 +47,11 @@ export function Navbar({}: NavbarProps) {
             <div className="w-8 h-8 rounded-lg gradient-green-blue flex items-center justify-center">
               <span className="text-white font-bold text-lg">D</span>
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-[var(--drone-green)] to-[var(--drone-teal)] bg-clip-text text-transparent">
-              DroneFarm
-            </span>
+            <span className="text-xl font-bold bg-gradient-to-r from-[#00FF88] to-[#00FFFF] bg-clip-text text-transparent">
+  KisanBuddy
+</span>
+
+
           </motion.div>
 
           <div className="hidden md:flex items-center space-x-8">

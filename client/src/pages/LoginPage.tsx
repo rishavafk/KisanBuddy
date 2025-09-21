@@ -122,7 +122,7 @@ export function LoginPage({ onBack }: LoginPageProps) {
                 <span className="text-white font-bold text-xl">D</span>
               </div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-[var(--drone-green)] to-[var(--drone-teal)] bg-clip-text text-transparent">
-                DroneFarm
+                KisanBuddy
               </h1>
             </motion.div>
 

@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, Zap } from 'lucide-react';
+import { Zap } from 'lucide-react';
 import { ImageWithFallback } from '@/components/ui/figma/ImageWithFallback';
 
 export function Hero() {
@@ -28,10 +28,7 @@ export function Hero() {
       className="relative min-h-screen flex items-center justify-center overflow-hidden"
     >
       {/* Animated Background */}
-      <motion.div
-        className="absolute inset-0 z-0"
-        style={{ y, scale }}
-      >
+      <motion.div className="absolute inset-0 z-0" style={{ y, scale }}>
         <div className="absolute inset-0 bg-gradient-to-br from-[var(--drone-dark)] via-[var(--drone-dark-secondary)] to-black"></div>
         <ImageWithFallback
           src="https://images.unsplash.com/photo-1559506709-e3d879c60305?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkcm9uZSUyMGFncmljdWx0dXJlJTIwZmFybWxhbmQlMjBhZXJpYWx8ZW58MXx8fHwxNzU4NDA2NzgzfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
@@ -78,20 +75,14 @@ export function Hero() {
       >
         <motion.div
           className="relative"
-          animate={{
-            y: [0, -10, 0],
-          }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
+          animate={{ y: [0, -10, 0] }}
+          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
         >
           <div className="w-20 h-20 md:w-32 md:h-32">
             <svg viewBox="0 0 100 100" className="w-full h-full">
               {/* Drone body */}
               <ellipse cx="50" cy="50" rx="15" ry="8" fill="var(--drone-green)" />
-              
+
               {/* Propellers */}
               <motion.g
                 animate={{ rotate: 360 }}
@@ -121,14 +112,14 @@ export function Hero() {
               >
                 <circle cx="75" cy="65" r="8" fill="rgba(255,255,255,0.3)" />
               </motion.g>
-              
+
               {/* Arms */}
               <line x1="35" y1="40" x2="25" y2="35" stroke="var(--drone-teal)" strokeWidth="2" />
               <line x1="65" y1="40" x2="75" y2="35" stroke="var(--drone-teal)" strokeWidth="2" />
               <line x1="35" y1="60" x2="25" y2="65" stroke="var(--drone-teal)" strokeWidth="2" />
               <line x1="65" y1="60" x2="75" y2="65" stroke="var(--drone-teal)" strokeWidth="2" />
             </svg>
-            
+
             {/* Spray effect */}
             <motion.div
               className="absolute -bottom-4 left-1/2 transform -translate-x-1/2"
@@ -152,19 +143,19 @@ export function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.5 }}
         >
+          {/* Professional Hero Title */}
           <motion.h1
-            className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight"
+            className="text-5xl md:text-6xl lg:text-7xl font-extrabold mb-6 leading-tight relative text-transparent bg-clip-text"
             style={{
-              background: 'linear-gradient(135deg, var(--drone-green), var(--drone-teal), var(--drone-blue))',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
+              backgroundImage: 'linear-gradient(90deg, #16A34A, #22D3EE)',
+              textShadow: '0 2px 8px rgba(0,0,0,0.5)',
             }}
           >
-            Smart Fertilizer Drone
+            Smart Pesticide Drone
           </motion.h1>
+
           <motion.h2
-            className="text-2xl md:text-3xl lg:text-4xl text-white/90 mb-8"
+            className="text-2xl md:text-3xl lg:text-4xl text-white/80 mb-8 font-medium"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.7 }}
@@ -174,42 +165,47 @@ export function Hero() {
         </motion.div>
 
         <motion.p
-          className="text-xl md:text-2xl text-white/70 mb-12 max-w-3xl mx-auto leading-relaxed"
+          className="text-lg md:text-xl text-white/70 mb-12 max-w-3xl mx-auto leading-relaxed"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.9 }}
         >
-          Revolutionize your farming with AI-powered drone technology that delivers precise fertilizer application, reduces waste, and maximizes crop yield.
+          Revolutionize your farming with AI-powered drone technology that
+          delivers precise fertilizer application, reduces waste, and maximizes
+          crop yield.
         </motion.p>
 
+        {/* Buttons */}
         <motion.div
           className="flex flex-col sm:flex-row gap-6 justify-center"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 1.1 }}
         >
+          {/* Learn More */}
           <Button
             size="lg"
-            className="bg-gradient-to-r from-[var(--drone-green)] to-[var(--drone-teal)] text-black font-medium px-8 py-4 text-lg rounded-xl hover:shadow-2xl hover:shadow-[var(--drone-green)]/30 transition-all duration-300 hover:scale-105"
+            onClick={() => {
+              const el = document.getElementById('features');
+              el?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="bg-gradient-to-r from-green-500 to-teal-400 text-white font-semibold px-8 py-4 text-lg rounded-xl shadow-lg hover:shadow-green-500/30 hover:scale-105 transition-all duration-300"
           >
             <Zap className="mr-2" />
             Learn More
           </Button>
+
+          {/* Watch Demo */}
           <Button
             variant="outline"
             size="lg"
-            className="border-[var(--drone-green)] text-[var(--drone-green)] hover:bg-[var(--drone-green)] hover:text-black px-8 py-4 text-lg rounded-xl transition-all duration-300"
+            onClick={() =>
+              window.open('https://www.youtube.com/watch?v=WZO1AtQHKKk', '_blank')
+            }
+            className="border-2 border-green-400 text-green-400 hover:bg-green-400 hover:text-black font-semibold px-8 py-4 text-lg rounded-xl transition-all duration-300"
           >
             Watch Demo
           </Button>
-        </motion.div>
-
-        <motion.div
-          className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        >
-          <ChevronDown className="w-8 h-8 text-[var(--drone-green)]" />
         </motion.div>
       </motion.div>
     </section>

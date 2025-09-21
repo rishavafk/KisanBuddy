@@ -229,7 +229,7 @@ export function Impact() {
               transition={{ duration: 0.3 }}
             >
               <ImageWithFallback
-                src="https://images.unsplash.com/photo-1630600967074-3095a8865ca3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxncmVlbiUyMGNyb3BzJTIwZmllbGQlMjBhZ3JpY3VsdHVyZXxlbnwxfHx8fDE3NTg0MDY3ODV8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+                src="https://media.istockphoto.com/id/617863246/photo/green-wheat-field.jpg?s=612x612&w=0&k=20&c=GAsectUgEou3pyByWrCyJcJ5TNdKGG0k9XBhqlMEoOE="
                 alt="Green healthy crops"
                 className="w-full h-80 object-cover rounded-xl"
               />
