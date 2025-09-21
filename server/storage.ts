@@ -327,6 +327,7 @@ export class MemStorage implements IStorage {
       healthRecordId: insertApplication.healthRecordId || null,
       status: insertApplication.status || 'recommended',
       recommendedBy: insertApplication.recommendedBy || 'ai_system',
+      applicationMethod: insertApplication.applicationMethod || 'drone',
       scheduledFor: insertApplication.scheduledFor || null,
       appliedAt: insertApplication.appliedAt || null,
       createdAt: new Date()

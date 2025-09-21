@@ -1,13 +1,18 @@
+'use client';
+
 import { Switch, Route } from "wouter";
-import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 
+// New Figma UI pages
 import LandingPage from "@/pages/landing";
 import LoginPage from "@/pages/login";
 import SignupPage from "@/pages/signup";
+
+// Existing pages after login
 import DashboardPage from "@/pages/dashboard";
 import CropSelectionPage from "@/pages/crop-selection";
 import DroneConnectionPage from "@/pages/drone-connection";
@@ -40,59 +45,55 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function Router() {
   return (
     <Switch>
+      {/* Public routes */}
       <Route path="/" component={LandingPage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/signup" component={SignupPage} />
-      
+
       {/* Protected routes */}
       <Route path="/dashboard">
         <ProtectedRoute>
           <DashboardPage />
         </ProtectedRoute>
       </Route>
-      
       <Route path="/crop-selection">
         <ProtectedRoute>
           <CropSelectionPage />
         </ProtectedRoute>
       </Route>
-      
       <Route path="/drone-connection">
         <ProtectedRoute>
           <DroneConnectionPage />
         </ProtectedRoute>
       </Route>
-      
       <Route path="/field-map">
         <ProtectedRoute>
           <FieldMapPage />
         </ProtectedRoute>
       </Route>
-      
       <Route path="/plant-health">
         <ProtectedRoute>
           <PlantHealthPage />
         </ProtectedRoute>
       </Route>
-      
       <Route path="/pesticide-control">
         <ProtectedRoute>
           <PesticideControlPage />
         </ProtectedRoute>
       </Route>
-      
       <Route path="/contact">
         <ProtectedRoute>
           <ContactPage />
         </ProtectedRoute>
       </Route>
-      
+
+      {/* Catch-all */}
       <Route component={NotFound} />
     </Switch>
   );
 }
 
-function App() {
+export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -102,5 +103,3 @@ function App() {
     </QueryClientProvider>
   );
 }
-
-export default App;

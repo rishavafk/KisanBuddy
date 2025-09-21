@@ -7,7 +7,7 @@ import { insertUserSchema, insertCropSchema, insertFieldSchema, insertDroneConne
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 
-const JWT_SECRET = process.env.SESSION_SECRET;
+const JWT_SECRET = process.env.SESSION_SECRET || 'default-secret-key';
 if (!JWT_SECRET) {
   console.error('FATAL: SESSION_SECRET environment variable is required');
   process.exit(1);

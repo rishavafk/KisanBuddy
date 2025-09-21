@@ -86,17 +86,17 @@ export default function FieldMapPage() {
     const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors',
       name: 'OpenStreetMap'
-    });
+    } as any);
 
     const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
       attribution: '© Esri',
       name: 'Satellite'
-    });
+    } as any);
 
     const terrainLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenTopoMap',
       name: 'Terrain'
-    });
+    } as any);
 
     // Add default layer
     osmLayer.addTo(map);
@@ -195,7 +195,7 @@ export default function FieldMapPage() {
           fillOpacity: 0.3,
           weight: 2,
           isField: true,
-        }).addTo(mapInstanceRef.current);
+        } as any).addTo(mapInstanceRef.current);
 
         polygon.bindPopup(`
           <div class="p-2">
@@ -232,7 +232,7 @@ export default function FieldMapPage() {
           opacity: 1,
           fillOpacity: 0.8,
           isHealthMarker: true,
-        }).addTo(mapInstanceRef.current);
+        } as any).addTo(mapInstanceRef.current);
 
         marker.bindPopup(`
           <div class="p-2">
@@ -261,7 +261,7 @@ export default function FieldMapPage() {
     } else if (selectedField === "all") {
       // Show all fields by fitting bounds
       if (fields && fields.length > 0) {
-        const group = new L.featureGroup();
+        const group = new (L as any).featureGroup();
         fields.forEach(field => {
           if (field.boundaries) {
             try {
