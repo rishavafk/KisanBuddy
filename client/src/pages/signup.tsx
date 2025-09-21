@@ -13,6 +13,7 @@ export default function SignupPage() {
   const [, setLocation] = useLocation();
 
   const [formData, setFormData] = useState({
+    username: "",
     firstName: "",
     lastName: "",
     email: "",
@@ -38,7 +39,7 @@ export default function SignupPage() {
     setLoading(true);
     try {
       await signup({
-        username: formData.email,
+        username: formData.username,
         email: formData.email,
         password: formData.password,
         fullName: `${formData.firstName} ${formData.lastName}`,
@@ -66,6 +67,20 @@ export default function SignupPage() {
         {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Username */}
+          <div className="relative">
+            <User className="absolute top-1/2 left-3 -translate-y-1/2 text-white/50" size={20} />
+            <Input
+              type="text"
+              placeholder="Username"
+              value={formData.username}
+              onChange={(e) => handleChange("username", e.target.value)}
+              required
+              className="pl-10 text-white bg-[#1A1C20] border border-white/20 focus:ring-green-400 focus:border-green-400"
+            />
+          </div>
+
+          {/* First & Last Name */}
           <div className="grid grid-cols-2 gap-4">
             <div className="relative">
               <User className="absolute top-1/2 left-3 -translate-y-1/2 text-white/50" size={20} />
@@ -91,6 +106,7 @@ export default function SignupPage() {
             </div>
           </div>
 
+          {/* Email */}
           <div className="relative">
             <AtSign className="absolute top-1/2 left-3 -translate-y-1/2 text-white/50" size={20} />
             <Input
@@ -103,6 +119,7 @@ export default function SignupPage() {
             />
           </div>
 
+          {/* Password */}
           <div className="relative">
             <Lock className="absolute top-1/2 left-3 -translate-y-1/2 text-white/50" size={20} />
             <Input
@@ -115,6 +132,7 @@ export default function SignupPage() {
             />
           </div>
 
+          {/* Confirm Password */}
           <div className="relative">
             <Lock className="absolute top-1/2 left-3 -translate-y-1/2 text-white/50" size={20} />
             <Input
@@ -127,6 +145,7 @@ export default function SignupPage() {
             />
           </div>
 
+          {/* Submit Button */}
           <Button
             type="submit"
             className="w-full py-3 bg-gradient-to-r from-green-400 to-teal-400 text-black font-semibold rounded-xl shadow-lg hover:scale-105 transition-transform duration-300"
