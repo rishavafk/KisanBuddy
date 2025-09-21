@@ -95,17 +95,22 @@ export class MemStorage implements IStorage {
     };
     this.crops.set(sampleCropId, sampleCrop);
 
-    // Sample fields
+    // Sample fields - using the specified coordinates
     const field1Id = randomUUID();
     const field1: Field = {
       id: field1Id,
       userId: sampleUserId,
       cropId: sampleCropId,
-      name: "North Field Zone A",
-      latitude: 28.7041,
-      longitude: 77.1025,
+      name: "Punjab Field Zone A",
+      latitude: 30.5795555, // Center of the specified area
+      longitude: 75.9249285, // Center of the specified area
       area: 1.2,
-      boundaries: JSON.stringify([[28.7041, 77.1025], [28.7051, 77.1035], [28.7061, 77.1025], [28.7051, 77.1015]]),
+      boundaries: JSON.stringify([
+        [30.577888, 75.921646], // Southwest corner
+        [30.581223, 75.921646], // Southeast corner
+        [30.581223, 75.928211], // Northeast corner
+        [30.577888, 75.928211]  // Northwest corner
+      ]),
       createdAt: new Date(),
     };
     this.fields.set(field1Id, field1);
@@ -134,8 +139,8 @@ export class MemStorage implements IStorage {
       infectionRate: 3.2,
       infectionType: "aphid",
       severity: "low",
-      latitude: 28.7041,
-      longitude: 77.1025,
+      latitude: 30.5798, // Within the specified area
+      longitude: 75.9252, // Within the specified area
       detectionConfidence: 85,
       recordedAt: new Date(),
     };

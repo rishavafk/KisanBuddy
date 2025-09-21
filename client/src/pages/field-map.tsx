@@ -4,6 +4,14 @@ import { withAuth } from "@/lib/auth";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
+// Fix for Leaflet default markers
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,7 +44,7 @@ interface HealthRecord {
 export default function FieldMapPage() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
-  const [selectedField, setSelectedField] = useState<string>("");
+  const [selectedField, setSelectedField] = useState<string>("all");
   const [mapView, setMapView] = useState<"satellite" | "terrain">("satellite");
 
   const { data: fields, isLoading: fieldsLoading } = useQuery({
@@ -65,14 +73,68 @@ export default function FieldMapPage() {
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    const map = L.map(mapRef.current).setView([28.7041, 77.1025], 13);
+    console.log('Initializing Leaflet map...');
+    
+    // Use the provided coordinates as center point
+    const centerLat = (30.577888 + 30.581223) / 2; // 30.5795555
+    const centerLon = (75.921646 + 75.928211) / 2; // 75.9249285
+    console.log('Map center:', centerLat, centerLon);
+    
+    const map = L.map(mapRef.current).setView([centerLat, centerLon], 15);
 
-    // Add tile layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
+    // Add multiple tile layers
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      name: 'OpenStreetMap'
+    });
+
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: '© Esri',
+      name: 'Satellite'
+    });
+
+    const terrainLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenTopoMap',
+      name: 'Terrain'
+    });
+
+    // Add default layer
+    osmLayer.addTo(map);
+
+    // Store layers for switching
+    mapInstanceRef.current = map;
+    mapInstanceRef.current.layers = {
+      osm: osmLayer,
+      satellite: satelliteLayer,
+      terrain: terrainLayer
+    };
+
+    // Add layer control
+    const layerControl = L.control.layers({
+      'OpenStreetMap': osmLayer,
+      'Satellite': satelliteLayer,
+      'Terrain': terrainLayer
     }).addTo(map);
 
-    mapInstanceRef.current = map;
+    // Add bounding box for the specified coordinates
+    const boundingBox = L.rectangle([
+      [30.577888, 75.921646], // Southwest corner
+      [30.581223, 75.928211]  // Northeast corner
+    ], {
+      color: '#ff6b6b',
+      fillColor: '#ff6b6b',
+      fillOpacity: 0.1,
+      weight: 2,
+      dashArray: '5, 5'
+    }).addTo(map);
+
+    boundingBox.bindPopup(`
+      <div class="p-2">
+        <h4 class="font-bold text-sm">Monitoring Area</h4>
+        <p class="text-xs">Lat: 30.577888 - 30.581223</p>
+        <p class="text-xs">Lon: 75.921646 - 75.928211</p>
+      </div>
+    `);
 
     // Cleanup
     return () => {
@@ -85,7 +147,19 @@ export default function FieldMapPage() {
 
   // Add field boundaries and health data to map
   useEffect(() => {
-    if (!mapInstanceRef.current || !fields || !healthRecords) return;
+    if (!mapInstanceRef.current || !fields || !healthRecords) {
+      console.log('Map not ready or data missing:', {
+        mapReady: !!mapInstanceRef.current,
+        fieldsCount: fields?.length || 0,
+        healthRecordsCount: healthRecords?.length || 0
+      });
+      return;
+    }
+
+    console.log('Adding fields and health records to map:', {
+      fields: fields.length,
+      healthRecords: healthRecords.length
+    });
 
     // Clear existing layers
     mapInstanceRef.current.eachLayer((layer: any) => {
@@ -95,26 +169,31 @@ export default function FieldMapPage() {
     });
 
     // Add field boundaries
-    fields.forEach((field) => {
+    fields.forEach((field, index) => {
       try {
+        console.log(`Processing field ${index + 1}:`, field.name, field.latitude, field.longitude);
+        
         let boundaries;
         if (field.boundaries) {
           boundaries = JSON.parse(field.boundaries);
+          console.log('Using stored boundaries:', boundaries);
         } else {
           // Create default boundary around the field center
-          const offset = 0.005;
+          const offset = 0.002; // Smaller offset for better visibility
           boundaries = [
             [field.latitude - offset, field.longitude - offset],
             [field.latitude + offset, field.longitude - offset],
             [field.latitude + offset, field.longitude + offset],
             [field.latitude - offset, field.longitude + offset],
           ];
+          console.log('Created default boundaries:', boundaries);
         }
 
         const polygon = L.polygon(boundaries, {
           color: '#22c55e',
           fillColor: '#22c55e',
-          fillOpacity: 0.2,
+          fillOpacity: 0.3,
+          weight: 2,
           isField: true,
         }).addTo(mapInstanceRef.current);
 
@@ -122,16 +201,21 @@ export default function FieldMapPage() {
           <div class="p-2">
             <h3 class="font-bold">${field.name}</h3>
             <p class="text-sm">Area: ${field.area} hectares</p>
+            <p class="text-xs">Coordinates: ${field.latitude.toFixed(6)}, ${field.longitude.toFixed(6)}</p>
           </div>
         `);
+        
+        console.log(`Added field polygon for: ${field.name}`);
       } catch (error) {
-        console.error('Error parsing field boundaries:', error);
+        console.error('Error parsing field boundaries:', error, field);
       }
     });
 
     // Add health record markers
-    healthRecords.forEach((record) => {
+    healthRecords.forEach((record, index) => {
       if (record.latitude && record.longitude) {
+        console.log(`Adding health record ${index + 1}:`, record.severity, record.latitude, record.longitude);
+        
         const severityColors = {
           low: '#22c55e',
           medium: '#f59e0b',
@@ -158,16 +242,40 @@ export default function FieldMapPage() {
             <p class="text-xs">Severity: ${record.severity}</p>
             ${record.infectionType ? `<p class="text-xs">Type: ${record.infectionType}</p>` : ''}
             <p class="text-xs">Confidence: ${record.detectionConfidence}%</p>
+            <p class="text-xs">Location: ${record.latitude.toFixed(6)}, ${record.longitude.toFixed(6)}</p>
           </div>
         `);
+        
+        console.log(`Added health marker for record ${index + 1}`);
+      } else {
+        console.log(`Skipping health record ${index + 1} - missing coordinates`);
       }
     });
 
     // Focus on selected field
-    if (selectedField) {
+    if (selectedField && selectedField !== "all") {
       const field = fields.find(f => f.id === selectedField);
       if (field) {
         mapInstanceRef.current.setView([field.latitude, field.longitude], 16);
+      }
+    } else if (selectedField === "all") {
+      // Show all fields by fitting bounds
+      if (fields && fields.length > 0) {
+        const group = new L.featureGroup();
+        fields.forEach(field => {
+          if (field.boundaries) {
+            try {
+              const boundaries = JSON.parse(field.boundaries);
+              const polygon = L.polygon(boundaries);
+              group.addLayer(polygon);
+            } catch (error) {
+              console.error('Error parsing field boundaries for fitBounds:', error);
+            }
+          }
+        });
+        if (group.getLayers().length > 0) {
+          mapInstanceRef.current.fitBounds(group.getBounds().pad(0.1));
+        }
       }
     }
   }, [fields, healthRecords, selectedField]);
@@ -186,7 +294,9 @@ export default function FieldMapPage() {
 
   const handleResetView = () => {
     if (mapInstanceRef.current) {
-      mapInstanceRef.current.setView([28.7041, 77.1025], 13);
+      const centerLat = (30.577888 + 30.581223) / 2;
+      const centerLon = (75.921646 + 75.928211) / 2;
+      mapInstanceRef.current.setView([centerLat, centerLon], 15);
     }
   };
 
@@ -235,7 +345,7 @@ export default function FieldMapPage() {
               <SelectValue placeholder="Select field to focus" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Fields</SelectItem>
+              <SelectItem value="all">All Fields</SelectItem>
               {fields?.map((field) => (
                 <SelectItem key={field.id} value={field.id}>
                   {field.name}
@@ -280,6 +390,7 @@ export default function FieldMapPage() {
                   ref={mapRef} 
                   className="w-full h-96 bg-muted"
                   data-testid="field-map"
+                  style={{ minHeight: '400px' }}
                 />
                 
                 {/* Map Legend */}

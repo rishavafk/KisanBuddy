@@ -14,8 +14,8 @@ export default function LandingPage() {
               <Leaf className="text-primary-foreground" size={20} />
             </div>
             <div>
-              <h1 className="text-xl font-bold">AgriSmart</h1>
-              <p className="text-xs text-muted-foreground">Precision Agriculture</p>
+              <h1 className="text-xl font-bold">Krishirakshak</h1>
+              <p className="text-xs text-muted-foreground">Agricultural Drone Monitoring</p>
             </div>
           </div>
           
@@ -35,13 +35,13 @@ export default function LandingPage() {
         <div className="container mx-auto text-center">
           <div className="max-w-4xl mx-auto">
             <h1 className="text-5xl font-bold mb-6 text-foreground">
-              Intelligent Pesticide Management
-              <span className="block text-primary mt-2">Powered by AI</span>
+              Agricultural Drone Monitoring
+              <span className="block text-primary mt-2">Krishirakshak</span>
             </h1>
             <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
-              Revolutionize your farming with precision spraying technology. 
-              Detect plant infections early, reduce pesticide waste, and boost crop yields 
-              with our smart agricultural system.
+              Revolutionize your farming with precision drone technology. 
+              Monitor field health, detect plant infections early, and optimize crop yields 
+              with our intelligent agricultural monitoring system.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/signup">

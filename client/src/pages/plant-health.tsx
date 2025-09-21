@@ -171,7 +171,7 @@ export default function PlantHealthPage() {
               <SelectValue placeholder="All fields" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Fields</SelectItem>
+              <SelectItem value="all">All Fields</SelectItem>
               {fields?.map((field) => (
                 <SelectItem key={field.id} value={field.id}>
                   {field.name}

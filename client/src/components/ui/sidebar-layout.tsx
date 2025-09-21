@@ -70,8 +70,8 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
                 <Leaf className="text-primary-foreground" size={20} />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-sidebar-foreground">AgriSmart</h1>
-                <p className="text-xs text-muted-foreground">Precision Agriculture</p>
+                <h1 className="text-lg font-bold text-sidebar-foreground">Krishirakshak</h1>
+                <p className="text-xs text-muted-foreground">Agricultural Drone Monitoring</p>
               </div>
             </div>
             <Button
@@ -148,7 +148,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
               </Button>
               <div>
                 <h2 className="text-xl font-semibold text-card-foreground">
-                  {navItems.find(item => item.href === location)?.label || "AgriSmart"}
+                  {navItems.find(item => item.href === location)?.label || "Krishirakshak"}
                 </h2>
                 <p className="text-sm text-muted-foreground">
                   {new Date().toLocaleDateString('en-US', { 

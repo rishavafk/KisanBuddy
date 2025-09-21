@@ -1,7 +1,18 @@
+import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { withAuth } from "@/lib/auth";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+// Fix for Leaflet default markers
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
 import { 
   Map, 
   Wheat, 
@@ -22,7 +33,46 @@ interface DashboardStats {
   pesticideSaved: number;
 }
 
+interface GridStatus {
+  status: string;
+  health: number;
+  color: string;
+}
+
+// Function to generate mock grid status based on coordinates
+function generateMockGridStatus(lat: number, lon: number): GridStatus {
+  // Create deterministic "random" status based on coordinates
+  const seed = Math.floor((lat * 1000000) + (lon * 1000000));
+  const random = (seed * 9301 + 49297) % 233280 / 233280;
+  
+  // Define status types and their probabilities
+  const statusTypes = [
+    { status: 'Healthy', health: 85, color: '#22c55e', weight: 0.6 },
+    { status: 'Mild Stress', health: 70, color: '#f59e0b', weight: 0.2 },
+    { status: 'Infected', health: 45, color: '#ef4444', weight: 0.15 },
+    { status: 'Critical', health: 20, color: '#dc2626', weight: 0.05 }
+  ];
+  
+  let cumulativeWeight = 0;
+  for (const type of statusTypes) {
+    cumulativeWeight += type.weight;
+    if (random <= cumulativeWeight) {
+      return {
+        status: type.status,
+        health: type.health + Math.floor((random * 20) - 10), // Add some variation
+        color: type.color
+      };
+    }
+  }
+  
+  // Fallback
+  return statusTypes[0];
+}
+
 export default function DashboardPage() {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['/api/dashboard/stats'],
     queryFn: async () => {
@@ -33,6 +83,189 @@ export default function DashboardPage() {
       return response.json() as Promise<DashboardStats>;
     },
   });
+
+  const { data: fields } = useQuery({
+    queryKey: ['/api/fields'],
+    queryFn: async () => {
+      const response = await fetch('/api/fields', {
+        headers: withAuth(),
+      });
+      if (!response.ok) throw new Error('Failed to fetch fields');
+      return response.json();
+    },
+  });
+
+  const { data: healthRecords } = useQuery({
+    queryKey: ['/api/health-records'],
+    queryFn: async () => {
+      const response = await fetch('/api/health-records', {
+        headers: withAuth(),
+      });
+      if (!response.ok) throw new Error('Failed to fetch health records');
+      return response.json();
+    },
+  });
+
+  // Initialize Leaflet map for field overview
+  useEffect(() => {
+    if (!mapRef.current || mapInstanceRef.current) return;
+
+    // Use the provided coordinates as center point
+    const centerLat = (30.577888 + 30.581223) / 2; // 30.5795555
+    const centerLon = (75.921646 + 75.928211) / 2; // 75.9249285
+    const map = L.map(mapRef.current).setView([centerLat, centerLon], 14);
+
+    // Add satellite layer for better field visualization
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: '© Esri',
+      name: 'Satellite'
+    }).addTo(map);
+
+    mapInstanceRef.current = map;
+
+    // Add bounding box for the specified coordinates
+    const boundingBox = L.rectangle([
+      [30.577888, 75.921646], // Southwest corner
+      [30.581223, 75.928211]  // Northeast corner
+    ], {
+      color: '#ff6b6b',
+      fillColor: '#ff6b6b',
+      fillOpacity: 0.1,
+      weight: 2,
+      dashArray: '5, 5'
+    }).addTo(map);
+
+    boundingBox.bindPopup(`
+      <div class="p-2">
+        <h4 class="font-bold text-sm">Monitoring Area</h4>
+        <p class="text-xs">Lat: 30.577888 - 30.581223</p>
+        <p class="text-xs">Lon: 75.921646 - 75.928211</p>
+      </div>
+    `);
+
+    // Create 1-meter grid overlay for dashboard
+    const gridLayer = L.layerGroup().addTo(map);
+    
+    // Calculate grid parameters
+    const latMin = 30.577888;
+    const latMax = 30.581223;
+    const lonMin = 75.921646;
+    const lonMax = 75.928211;
+    
+    // Convert 1 meter to degrees (approximate)
+    const latStep = 1 / 111000; // 1 meter in latitude degrees
+    const lonStep = 1 / (111000 * Math.cos((latMin + latMax) / 2 * Math.PI / 180)); // 1 meter in longitude degrees
+    
+    // Generate grid cells (smaller grid for dashboard)
+    for (let lat = latMin; lat < latMax; lat += latStep * 2) { // 2m cells for dashboard
+      for (let lon = lonMin; lon < lonMax; lon += lonStep * 2) {
+        // Generate mock status for each grid cell
+        const mockStatus = generateMockGridStatus(lat, lon);
+        
+        const gridCell = L.rectangle([
+          [lat, lon],
+          [lat + latStep * 2, lon + lonStep * 2]
+        ], {
+          color: '#333',
+          weight: 0.3,
+          fillColor: mockStatus.color,
+          fillOpacity: 0.4,
+          className: 'grid-cell'
+        }).addTo(gridLayer);
+      }
+    }
+    
+    // Store grid layer
+    mapInstanceRef.current.gridLayer = gridLayer;
+
+    // Cleanup
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, []);
+
+  // Add field boundaries and health data to overview map
+  useEffect(() => {
+    if (!mapInstanceRef.current || !fields || !healthRecords) return;
+
+    // Clear existing layers
+    mapInstanceRef.current.eachLayer((layer: any) => {
+      if (layer.options && (layer.options.isField || layer.options.isHealthMarker)) {
+        mapInstanceRef.current.removeLayer(layer);
+      }
+    });
+
+    // Add field boundaries
+    fields.forEach((field: any) => {
+      try {
+        let boundaries;
+        if (field.boundaries) {
+          boundaries = JSON.parse(field.boundaries);
+        } else {
+          // Create default boundary around the field center
+          const offset = 0.002;
+          boundaries = [
+            [field.latitude - offset, field.longitude - offset],
+            [field.latitude + offset, field.longitude - offset],
+            [field.latitude + offset, field.longitude + offset],
+            [field.latitude - offset, field.longitude + offset],
+          ];
+        }
+
+        const polygon = L.polygon(boundaries, {
+          color: '#22c55e',
+          fillColor: '#22c55e',
+          fillOpacity: 0.3,
+          weight: 2,
+          isField: true,
+        }).addTo(mapInstanceRef.current);
+
+        polygon.bindPopup(`
+          <div class="p-2">
+            <h3 class="font-bold text-sm">${field.name}</h3>
+            <p class="text-xs">Area: ${field.area} hectares</p>
+          </div>
+        `);
+      } catch (error) {
+        console.error('Error parsing field boundaries:', error);
+      }
+    });
+
+    // Add health record markers
+    healthRecords.forEach((record: any) => {
+      if (record.latitude && record.longitude) {
+        const severityColors = {
+          low: '#22c55e',
+          medium: '#f59e0b',
+          high: '#ef4444',
+        };
+
+        const color = severityColors[record.severity as keyof typeof severityColors] || '#6b7280';
+
+        const marker = L.circleMarker([record.latitude, record.longitude], {
+          radius: 6,
+          fillColor: color,
+          color: 'white',
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.8,
+          isHealthMarker: true,
+        }).addTo(mapInstanceRef.current);
+
+        marker.bindPopup(`
+          <div class="p-2">
+            <h4 class="font-bold text-xs">Health Record</h4>
+            <p class="text-xs">Health: ${record.healthScore}%</p>
+            <p class="text-xs">Infection: ${record.infectionRate}%</p>
+            <p class="text-xs">Severity: ${record.severity}</p>
+          </div>
+        `);
+      }
+    });
+  }, [fields, healthRecords]);
 
   if (statsLoading) {
     return (
@@ -152,33 +385,49 @@ export default function DashboardPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-6">
-              <div className="w-full h-80 bg-muted rounded-lg relative overflow-hidden">
-                {/* Field visualization placeholder */}
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20"></div>
+            <CardContent className="p-0">
+              <div className="relative">
+                <div 
+                  ref={mapRef} 
+                  className="w-full h-80 bg-muted rounded-lg"
+                  style={{ minHeight: '320px' }}
+                />
                 
-                {/* Legend */}
-                <div className="absolute top-4 left-4 bg-card rounded-lg p-3 shadow-lg">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <div className="w-3 h-3 bg-primary rounded-full"></div>
-                    <span className="text-sm">Healthy (87%)</span>
-                  </div>
-                  <div className="flex items-center space-x-2 mb-2">
-                    <div className="w-3 h-3 bg-accent rounded-full"></div>
-                    <span className="text-sm">Mild Infection (10%)</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-destructive rounded-full"></div>
-                    <span className="text-sm">Severe (3%)</span>
+                {/* Map Legend */}
+                <div className="absolute top-4 left-4 bg-card/95 backdrop-blur rounded-lg p-3 shadow-lg z-[1000]">
+                  <h4 className="font-medium mb-2 text-sm">Field Status</h4>
+                  <div className="space-y-2">
+                    <div className="text-xs font-medium text-muted-foreground mb-1">Grid Status (2m cells)</div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-green-500 rounded-sm"></div>
+                      <span className="text-xs">Healthy</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-yellow-500 rounded-sm"></div>
+                      <span className="text-xs">Mild Stress</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-red-500 rounded-sm"></div>
+                      <span className="text-xs">Infected</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-red-700 rounded-sm"></div>
+                      <span className="text-xs">Critical</span>
+                    </div>
+                    <div className="text-xs font-medium text-muted-foreground mb-1 mt-2">Field Markers</div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-1 bg-primary/30 border border-primary"></div>
+                      <span className="text-xs">Field Boundary</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-primary rounded-full"></div>
+                      <span className="text-xs">Health Marker</span>
+                    </div>
                   </div>
                 </div>
-                
-                {/* Field zones visualization */}
-                <div className="absolute top-12 right-8 w-24 h-16 bg-primary/30 rounded-lg border-2 border-primary"></div>
-                <div className="absolute top-32 right-12 w-20 h-20 bg-accent/40 rounded-lg border-2 border-accent"></div>
-                <div className="absolute bottom-16 left-12 w-16 h-12 bg-destructive/40 rounded-lg border-2 border-destructive"></div>
-                
-                <div className="absolute bottom-4 right-4 bg-card rounded-lg p-2 text-xs">
+
+                {/* Map Info */}
+                <div className="absolute bottom-4 right-4 bg-card/95 backdrop-blur rounded-lg p-2 text-xs z-[1000]">
                   <span className="text-muted-foreground">Last updated: 5 min ago</span>
                 </div>
               </div>
