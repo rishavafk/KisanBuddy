@@ -168,7 +168,7 @@ export default function DashboardPage() {
     // Add satellite layer for better field visualization
     const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
       attribution: '© Esri',
-      name: 'Satellite'
+      // name: 'Satellite'
     }).addTo(map);
 
     mapInstanceRef.current = map;
@@ -282,7 +282,7 @@ export default function DashboardPage() {
           fillColor: '#22c55e',
           fillOpacity: 0.3,
           weight: 2,
-          isField: true,
+          // isField: true,
         }).addTo(mapInstanceRef.current);
 
         polygon.bindPopup(`
@@ -314,7 +314,7 @@ export default function DashboardPage() {
           weight: 2,
           opacity: 1,
           fillOpacity: 0.8,
-          isHealthMarker: true,
+          // isHealthMarker: true,
         }).addTo(mapInstanceRef.current);
 
         marker.bindPopup(`

@@ -7,7 +7,7 @@ import { Features } from './Features';
 import { Technology } from './Technology';
 import { Impact } from './Impact';
 import { Contact } from './Contact copy';
-import { AdvancedDrone } from './AdvancedDrone';
+// import { AdvancedDrone } from './AdvancedDrone';
 import LoginPage from './login';
 
 export default function App() {
@@ -60,7 +60,7 @@ export default function App() {
         }}
       />
 
-      <AdvancedDrone />
+      {/* <AdvancedDrone /> */}
 
       <Navbar />
 
