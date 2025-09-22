@@ -1,16 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { withAuth } from "@/lib/auth";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-
-// Fix for Leaflet default markers
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-});
+import { configureLeaflet, L } from "@/lib/leaflet-config";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,6 +37,141 @@ export default function FieldMapPage() {
   const mapInstanceRef = useRef<any>(null);
   const [selectedField, setSelectedField] = useState<string>("all");
   const [mapView, setMapView] = useState<"satellite" | "terrain">("satellite");
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
+  const [currentDrawing, setCurrentDrawing] = useState<any>(null);
+
+  // Field drawing functions
+  const startDrawingField = () => {
+    if (!mapInstanceRef.current) return;
+    
+    setIsDrawingMode(true);
+    const map = mapInstanceRef.current;
+    
+    // Change cursor to crosshair
+    map.getContainer().style.cursor = 'crosshair';
+    
+    let isDrawing = false;
+    let startLatLng: any = null;
+    let rectangle: any = null;
+    
+    const onMouseDown = (e: any) => {
+      isDrawing = true;
+      startLatLng = e.latlng;
+      
+      rectangle = L.rectangle([startLatLng, startLatLng], {
+        color: '#22c55e',
+        fillColor: '#22c55e',
+        fillOpacity: 0.2,
+        weight: 2,
+        dashArray: '5, 5'
+      }).addTo(map);
+    };
+    
+    const onMouseMove = (e: any) => {
+      if (!isDrawing || !rectangle) return;
+      rectangle.setBounds([startLatLng, e.latlng]);
+    };
+    
+    const onMouseUp = (e: any) => {
+      if (!isDrawing) return;
+      isDrawing = false;
+      
+      // Finalize the rectangle
+      setCurrentDrawing(rectangle);
+      setIsDrawingMode(false);
+      map.getContainer().style.cursor = '';
+      
+      // Remove event listeners
+      map.off('mousedown', onMouseDown);
+      map.off('mousemove', onMouseMove);
+      map.off('mouseup', onMouseUp);
+      
+      // Add popup for field naming
+      const bounds = rectangle.getBounds();
+      const area = calculateArea(bounds);
+      
+      rectangle.bindPopup(`
+        <div class="p-2">
+          <h4 class="font-bold text-sm mb-2">New Field</h4>
+          <input type="text" id="field-name" placeholder="Enter field name" class="w-full p-1 border rounded text-sm mb-2" />
+          <p class="text-xs mb-2">Area: ~${area.toFixed(2)} hectares</p>
+          <div class="flex space-x-2">
+            <button onclick="saveField()" class="bg-green-500 text-white px-2 py-1 rounded text-xs">Save</button>
+            <button onclick="cancelField()" class="bg-red-500 text-white px-2 py-1 rounded text-xs">Cancel</button>
+          </div>
+        </div>
+      `).openPopup();
+    };
+    
+    // Add event listeners
+    map.on('mousedown', onMouseDown);
+    map.on('mousemove', onMouseMove);
+    map.on('mouseup', onMouseUp);
+  };
+  
+  const calculateArea = (bounds: any) => {
+    const ne = bounds.getNorthEast();
+    const sw = bounds.getSouthWest();
+    
+    // Rough calculation for small areas (in hectares)
+    const latDiff = ne.lat - sw.lat;
+    const lngDiff = ne.lng - sw.lng;
+    
+    // Convert to meters and then to hectares
+    const latMeters = latDiff * 111000;
+    const lngMeters = lngDiff * 111000 * Math.cos(ne.lat * Math.PI / 180);
+    
+    return (latMeters * lngMeters) / 10000; // Convert to hectares
+  };
+  
+  const saveField = async () => {
+    if (!currentDrawing) return;
+    
+    const fieldName = (document.getElementById('field-name') as HTMLInputElement)?.value || 'New Field';
+    const bounds = currentDrawing.getBounds();
+    const center = bounds.getCenter();
+    const area = calculateArea(bounds);
+    
+    try {
+      const response = await fetch('/api/fields', {
+        method: 'POST',
+        headers: {
+          ...withAuth(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: fieldName,
+          latitude: center.lat,
+          longitude: center.lng,
+          area: area,
+          boundaries: JSON.stringify([
+            [bounds.getSouth(), bounds.getWest()],
+            [bounds.getNorth(), bounds.getWest()],
+            [bounds.getNorth(), bounds.getEast()],
+            [bounds.getSouth(), bounds.getEast()]
+          ])
+        }),
+      });
+      
+      if (response.ok) {
+        // Refresh fields data
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Failed to save field:', error);
+    }
+  };
+  
+  const cancelField = () => {
+    if (currentDrawing && mapInstanceRef.current) {
+      mapInstanceRef.current.removeLayer(currentDrawing);
+      setCurrentDrawing(null);
+    }
+  };
+
+  // Make functions globally available for popup buttons
+  (window as any).saveField = saveField;
+  (window as any).cancelField = cancelField;
 
   const { data: fields, isLoading: fieldsLoading } = useQuery({
     queryKey: ['/api/fields'],
@@ -73,6 +199,9 @@ export default function FieldMapPage() {
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
+    // Configure Leaflet first
+    configureLeaflet();
+    
     console.log('Initializing Leaflet map...');
     
     // Use the provided coordinates as center point
@@ -369,6 +498,15 @@ export default function FieldMapPage() {
                 </CardTitle>
                 
                 <div className="flex items-center space-x-2">
+                  <Button 
+                    variant={isDrawingMode ? "default" : "outline"} 
+                    size="sm" 
+                    onClick={startDrawingField}
+                    disabled={isDrawingMode}
+                    data-testid="button-add-field"
+                  >
+                    {isDrawingMode ? "Drawing..." : "Add Field"}
+                  </Button>
                   <Button variant="outline" size="sm" onClick={handleZoomIn} data-testid="button-zoom-in">
                     <ZoomIn size={16} />
                   </Button>

@@ -3,8 +3,8 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
+import { DroneIcon } from "@/components/ui/drone-icon";
 import { 
-  Leaf, 
   BarChart3, 
   Wheat, 
   Wifi, 
@@ -67,7 +67,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                <Leaf className="text-primary-foreground" size={20} />
+                <DroneIcon className="text-primary-foreground" size={20} />
               </div>
               <div>
                 <h1 className="text-lg font-bold text-sidebar-foreground">KisanBuddy</h1>

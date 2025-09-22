@@ -45,7 +45,7 @@ export function Navbar({}: NavbarProps) {
             transition={{ type: 'spring', stiffness: 400, damping: 10 }}
           >
             <div className="w-8 h-8 rounded-lg gradient-green-blue flex items-center justify-center">
-              <span className="text-white font-bold text-lg">D</span>
+              <span className="text-white font-bold text-lg"></span>
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-[#00FF88] to-[#00FFFF] bg-clip-text text-transparent">
   KisanBuddy
@@ -89,9 +89,9 @@ export function Navbar({}: NavbarProps) {
               style={{
                 boxShadow: '0 0 20px rgba(0, 255, 136, 0.3)',
               }}
-              onClick={() => setLocation('/signup')}
+              onClick={() => setLocation('/login')}
             >
-              Register Now
+              Get Started
             </Button>
           </motion.div>
         </div>

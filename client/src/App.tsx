@@ -10,7 +10,6 @@ import { useAuth } from "@/hooks/use-auth";
 // New Figma UI pages
 import LandingPage from "@/pages/landing";
 import LoginPage from "@/pages/login";
-import SignupPage from "@/pages/signup";
 
 // Existing pages after login
 import DashboardPage from "@/pages/dashboard";
@@ -48,7 +47,6 @@ function Router() {
       {/* Public routes */}
       <Route path="/" component={LandingPage} />
       <Route path="/login" component={LoginPage} />
-      <Route path="/signup" component={SignupPage} />
 
       {/* Protected routes */}
       <Route path="/dashboard">

@@ -8,7 +8,7 @@ import { Technology } from './Technology';
 import { Impact } from './Impact';
 import { Contact } from './Contact copy';
 import { AdvancedDrone } from './AdvancedDrone';
-import { LoginPage } from './LoginPage';
+import LoginPage from './login';
 
 export default function App() {
   const [showLogin, setShowLogin] = useState(false);
@@ -62,7 +62,7 @@ export default function App() {
 
       <AdvancedDrone />
 
-      <Navbar onLoginClick={() => setShowLogin(true)} />
+      <Navbar />
 
       <main className="relative">
         <Hero />

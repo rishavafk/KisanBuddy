@@ -32,7 +32,6 @@ class AuthService {
   async login(credentials: { username: string; password: string }): Promise<AuthResponse> {
     const response = await apiRequest('POST', '/api/auth/login', credentials);
     const data: AuthResponse = await response.json();
-    
     this.setAuthData(data);
     return data;
   }
@@ -45,26 +44,22 @@ class AuthService {
   }): Promise<AuthResponse> {
     const response = await apiRequest('POST', '/api/auth/signup', userData);
     const data: AuthResponse = await response.json();
-    
     this.setAuthData(data);
     return data;
   }
 
   async getCurrentUser(): Promise<AuthUser | null> {
     if (!this.token) return null;
-    
     try {
       const response = await fetch('/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${this.token}`,
         },
       });
-      
       if (!response.ok) {
         this.logout();
         return null;
       }
-      
       const data = await response.json();
       this.user = data.user;
       localStorage.setItem('auth_user', JSON.stringify(this.user));

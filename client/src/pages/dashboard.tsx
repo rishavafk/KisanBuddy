@@ -1,23 +1,14 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { withAuth } from "@/lib/auth";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-
-// Fix for Leaflet default markers
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-});
+import { configureLeaflet, L } from "@/lib/leaflet-config";
+import { DroneIcon } from "@/components/ui/drone-icon";
 import { 
   Map, 
   Wheat, 
   AlertTriangle, 
-  Leaf, 
   ArrowUp, 
   ArrowDown,
   CheckCircle,
@@ -33,45 +24,97 @@ interface DashboardStats {
   pesticideSaved: number;
 }
 
-interface GridStatus {
-  status: string;
-  health: number;
-  color: string;
-}
 
-// Function to generate mock grid status based on coordinates
-function generateMockGridStatus(lat: number, lon: number): GridStatus {
-  // Create deterministic "random" status based on coordinates
-  const seed = Math.floor((lat * 1000000) + (lon * 1000000));
-  const random = (seed * 9301 + 49297) % 233280 / 233280;
-  
-  // Define status types and their probabilities
-  const statusTypes = [
-    { status: 'Healthy', health: 85, color: '#22c55e', weight: 0.6 },
-    { status: 'Mild Stress', health: 70, color: '#f59e0b', weight: 0.2 },
-    { status: 'Infected', health: 45, color: '#ef4444', weight: 0.15 },
-    { status: 'Critical', health: 20, color: '#dc2626', weight: 0.05 }
-  ];
-  
-  let cumulativeWeight = 0;
-  for (const type of statusTypes) {
-    cumulativeWeight += type.weight;
-    if (random <= cumulativeWeight) {
-      return {
-        status: type.status,
-        health: type.health + Math.floor((random * 20) - 10), // Add some variation
-        color: type.color
-      };
-    }
-  }
-  
-  // Fallback
-  return statusTypes[0];
-}
 
 export default function DashboardPage() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
+  const droneMarkerRef = useRef<any>(null);
+  
+  // State management
+  const [viewMode, setViewMode] = useState<'live' | 'historical'>('live');
+  const [isScanning, setIsScanning] = useState(false);
+  const [droneConnected, setDroneConnected] = useState(false);
+
+  // Function to create animated drone marker
+  const createDroneMarker = (map: any) => {
+    const centerLat = (30.577888 + 30.581223) / 2;
+    const centerLon = (75.921646 + 75.928211) / 2;
+    
+    // Create custom drone icon
+    const droneIcon = L.divIcon({
+      html: `
+        <div class="drone-marker">
+          <div class="drone-body"></div>
+          <div class="drone-propeller drone-propeller-1"></div>
+          <div class="drone-propeller drone-propeller-2"></div>
+          <div class="drone-propeller drone-propeller-3"></div>
+          <div class="drone-propeller drone-propeller-4"></div>
+        </div>
+      `,
+      className: 'drone-icon',
+      iconSize: [30, 30],
+      iconAnchor: [15, 15]
+    });
+
+    const droneMarker = L.marker([centerLat, centerLon], { icon: droneIcon }).addTo(map);
+    
+    // Animate drone movement in a scanning pattern
+    let angle = 0;
+    const radius = 0.0005; // Small radius for scanning pattern
+    
+    const animateDrone = () => {
+      if (!isScanning) return;
+      
+      angle += 0.1;
+      const newLat = centerLat + Math.cos(angle) * radius;
+      const newLon = centerLon + Math.sin(angle) * radius;
+      
+      droneMarker.setLatLng([newLat, newLon]);
+      
+      if (isScanning) {
+        setTimeout(animateDrone, 100);
+      }
+    };
+    
+    animateDrone();
+    return droneMarker;
+  };
+
+  // Button handlers
+  const handleConnectDrone = async () => {
+    setDroneConnected(true);
+    // Here you would typically make an API call to connect to a drone
+    console.log('Connecting to drone...');
+  };
+
+  const handleStartFieldScan = () => {
+    if (!mapInstanceRef.current) return;
+    
+    setIsScanning(!isScanning);
+    
+    if (!isScanning && !droneMarkerRef.current) {
+      // Start scanning - create drone marker
+      droneMarkerRef.current = createDroneMarker(mapInstanceRef.current);
+    } else if (isScanning && droneMarkerRef.current) {
+      // Stop scanning - remove drone marker
+      mapInstanceRef.current.removeLayer(droneMarkerRef.current);
+      droneMarkerRef.current = null;
+    }
+  };
+
+  const handleViewModeChange = (mode: 'live' | 'historical') => {
+    setViewMode(mode);
+    console.log(`Switched to ${mode} view`);
+    
+    // Force map resize when switching views
+    if (mapInstanceRef.current) {
+      setTimeout(() => {
+        mapInstanceRef.current.invalidateSize();
+        console.log('Map resized after view change');
+      }, 100);
+    }
+  };
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['/api/dashboard/stats'],
@@ -110,9 +153,16 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
+    // Configure Leaflet first
+    configureLeaflet();
+
+    console.log('Initializing Dashboard Leaflet map...');
+
     // Use the provided coordinates as center point
     const centerLat = (30.577888 + 30.581223) / 2; // 30.5795555
     const centerLon = (75.921646 + 75.928211) / 2; // 75.9249285
+    console.log('Dashboard map center:', centerLat, centerLon);
+
     const map = L.map(mapRef.current).setView([centerLat, centerLon], 14);
 
     // Add satellite layer for better field visualization
@@ -143,40 +193,13 @@ export default function DashboardPage() {
       </div>
     `);
 
-    // Create 1-meter grid overlay for dashboard
-    const gridLayer = L.layerGroup().addTo(map);
-    
-    // Calculate grid parameters
-    const latMin = 30.577888;
-    const latMax = 30.581223;
-    const lonMin = 75.921646;
-    const lonMax = 75.928211;
-    
-    // Convert 1 meter to degrees (approximate)
-    const latStep = 1 / 111000; // 1 meter in latitude degrees
-    const lonStep = 1 / (111000 * Math.cos((latMin + latMax) / 2 * Math.PI / 180)); // 1 meter in longitude degrees
-    
-    // Generate grid cells (smaller grid for dashboard)
-    for (let lat = latMin; lat < latMax; lat += latStep * 2) { // 2m cells for dashboard
-      for (let lon = lonMin; lon < lonMax; lon += lonStep * 2) {
-        // Generate mock status for each grid cell
-        const mockStatus = generateMockGridStatus(lat, lon);
-        
-        const gridCell = L.rectangle([
-          [lat, lon],
-          [lat + latStep * 2, lon + lonStep * 2]
-        ], {
-          color: '#333',
-          weight: 0.3,
-          fillColor: mockStatus.color,
-          fillOpacity: 0.4,
-          className: 'grid-cell'
-        }).addTo(gridLayer);
+    // Force map to recalculate its size after a short delay
+    setTimeout(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+        console.log('Dashboard map size invalidated');
       }
-    }
-    
-    // Store grid layer
-    mapInstanceRef.current.gridLayer = gridLayer;
+    }, 250);
 
     // Cleanup
     return () => {
@@ -184,6 +207,45 @@ export default function DashboardPage() {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
+    };
+  }, []);
+
+  // Handle map resize when component becomes visible or window resizes
+  useEffect(() => {
+    const handleResize = () => {
+      if (mapInstanceRef.current) {
+        setTimeout(() => {
+          mapInstanceRef.current.invalidateSize();
+          console.log('Dashboard map resized');
+        }, 100);
+      }
+    };
+
+    // Listen for window resize
+    window.addEventListener('resize', handleResize);
+    
+    // Also trigger resize when component is mounted (in case it was hidden)
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && mapInstanceRef.current) {
+            setTimeout(() => {
+              mapInstanceRef.current.invalidateSize();
+              console.log('Dashboard map became visible - resized');
+            }, 100);
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    if (mapRef.current) {
+      observer.observe(mapRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      observer.disconnect();
     };
   }, []);
 
@@ -359,7 +421,7 @@ export default function DashboardPage() {
                 </p>
               </div>
               <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Leaf className="text-primary" size={24} />
+                <DroneIcon className="text-primary" size={24} />
               </div>
             </div>
             <div className="flex items-center mt-4 text-sm">
@@ -380,8 +442,21 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <CardTitle>Field Overview</CardTitle>
                 <div className="flex items-center space-x-2">
-                  <Button size="sm" data-testid="button-live-view">Live View</Button>
-                  <Button variant="outline" size="sm">Historical</Button>
+                  <Button 
+                    size="sm" 
+                    variant={viewMode === 'live' ? 'default' : 'outline'}
+                    onClick={() => handleViewModeChange('live')}
+                    data-testid="button-live-view"
+                  >
+                    Live View
+                  </Button>
+                  <Button 
+                    variant={viewMode === 'historical' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => handleViewModeChange('historical')}
+                  >
+                    Historical
+                  </Button>
                 </div>
               </div>
             </CardHeader>
@@ -469,12 +544,22 @@ export default function DashboardPage() {
 
             <div className="space-y-3">
               <h4 className="font-medium">Quick Actions</h4>
-              <Button className="w-full" data-testid="button-connect-drone">
+              <Button 
+                className="w-full" 
+                onClick={handleConnectDrone}
+                disabled={droneConnected}
+                data-testid="button-connect-drone"
+              >
                 <Wifi className="mr-2" size={16} />
-                Connect New Drone
+                {droneConnected ? 'Drone Connected' : 'Connect New Drone'}
               </Button>
-              <Button variant="outline" className="w-full" data-testid="button-start-scan">
-                Start Field Scan
+              <Button 
+                variant={isScanning ? 'destructive' : 'outline'} 
+                className="w-full" 
+                onClick={handleStartFieldScan}
+                data-testid="button-start-scan"
+              >
+                {isScanning ? 'Stop Field Scan' : 'Start Field Scan'}
               </Button>
             </div>
 
