@@ -8,7 +8,7 @@
     "dev:client": "cd client && vite",
     "dev:api": "tsx server/dev-server.ts",
     "dev:vercel": "vercel dev",
-    "build": "cd client && npm install && npx vite build",
+    "build": "cd ./client && npm install && npx vite build",
     "start": "tsx server/production-server.ts",
     "start:dev": "vercel dev",
     "check": "tsc",
