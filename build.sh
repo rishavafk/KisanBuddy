@@ -18,10 +18,13 @@ echo "Installing client dependencies..."
 cd src/client
 npm install
 
+echo "Checking Vite installation..."
+ls -la node_modules/.bin/vite
+
 echo "Building client..."
-npx vite build
+./node_modules/.bin/vite build
 
 # Go back to root
-cd ..
+cd ../..
 
 echo "Build completed successfully!"
