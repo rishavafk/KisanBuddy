@@ -43,22 +43,19 @@ async function handleSignup(req: VercelRequest, res: VercelResponse) {
   const validatedData = insertUserSchema.parse(req.body);
   const hashedPassword = await bcrypt.hash(validatedData.password, 10);
 
-  const user = {
-    id: Date.now().toString(),
+  const newUser = await storage.createUser({
     ...validatedData,
     password: hashedPassword,
     role: 'farmer'
-  };
-
-  storage.users.push(user);
+  });
 
   const token = jwt.sign(
-    { userId: user.id, username: user.username },
+    { userId: newUser.id, username: newUser.username },
     JWT_SECRET,
     { expiresIn: '7d' }
   );
 
-  const { password, ...userWithoutPassword } = user;
+  const { password, ...userWithoutPassword } = newUser;
   return res.status(201).json({
     message: 'User created successfully',
     user: userWithoutPassword,
@@ -72,7 +69,7 @@ async function handleLogin(req: VercelRequest, res: VercelResponse) {
   }
 
   const { username, password } = loginSchema.parse(req.body);
-  const user = storage.users.find(u => u.username === username);
+  const user = await storage.getUserByUsername(username);
 
   if (!user || !await bcrypt.compare(password, user.password)) {
     return res.status(401).json({ message: 'Invalid credentials' });
@@ -105,7 +102,7 @@ async function handleMe(req: VercelRequest, res: VercelResponse) {
   try {
     const token = authHeader.substring(7);
     const decoded = jwt.verify(token, JWT_SECRET) as any;
-    const user = storage.users.find(u => u.id === decoded.userId);
+    const user = await storage.getUser(decoded.userId);
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
