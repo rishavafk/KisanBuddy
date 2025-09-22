@@ -7,15 +7,15 @@ echo "Installing root dependencies..."
 npm install
 
 # Check if client directory exists
-if [ ! -d "client" ]; then
-    echo "Error: client directory not found!"
+if [ ! -d "src/client" ]; then
+    echo "Error: src/client directory not found!"
     ls -la
     exit 1
 fi
 
 # Install client dependencies and build
 echo "Installing client dependencies..."
-cd client
+cd src/client
 npm install
 
 echo "Building client..."

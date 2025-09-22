@@ -20,7 +20,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Serve static files from the built client
-app.use(express.static(path.join(__dirname, '../client/dist')));
+app.use(express.static(path.join(__dirname, '../src/client/dist')));
 
 // API routes
 const startServer = async () => {
@@ -28,7 +28,7 @@ const startServer = async () => {
   
   // Catch-all handler: send back React's index.html file for client-side routing
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+    res.sendFile(path.join(__dirname, '../src/client/dist/index.html'));
   });
   
   const port = process.env.PORT || 3000;
